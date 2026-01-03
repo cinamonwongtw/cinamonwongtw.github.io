@@ -1,11 +1,217 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<title>我的 GitHub Pages 網站</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HKTVmall 接金幣挑戰</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #222;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            border: 4px solid #fff;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        canvas {
+            background: linear-gradient(to bottom, #76b82a 0%, #4d791c 100%);
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 28px;
+            font-weight: 900;
+            text-shadow: 2px 2px 0px #ff6600;
+            pointer-events: none;
+        }
+        .instructions {
+            color: white;
+            margin-top: 15px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-<h1>你好！GitHub Pages 已經成功運作 🎉</h1>
-<p>呢度係我嘅第一個 GitHub Pages 頁面。</p>
+
+    <div id="game-container">
+        <div id="ui">MALL DOLLAR: <span id="score">0</span></div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="instructions">
+        電腦：左右方向鍵 | 手機：左右滑動果籃
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+
+    // 自動適應屏幕
+    canvas.width = Math.min(window.innerWidth - 40, 450);
+    canvas.height = Math.min(window.innerHeight - 150, 700);
+
+    let score = 0;
+    const basket = {
+        width: 120,
+        height: 70,
+        x: canvas.width / 2 - 60,
+        y: canvas.height - 100,
+        speed: 10
+    };
+
+    const coins = [];
+    let rightPressed = false;
+    let leftPressed = false;
+
+    // 處理輸入
+    document.addEventListener("keydown", (e) => {
+        if(e.key === "ArrowRight") rightPressed = true;
+        if(e.key === "ArrowLeft") leftPressed = true;
+    });
+    document.addEventListener("keyup", (e) => {
+        if(e.key === "ArrowRight") rightPressed = false;
+        if(e.key === "ArrowLeft") leftPressed = false;
+    });
+    canvas.addEventListener("touchmove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const touchX = e.touches[0].clientX - rect.left;
+        basket.x = touchX - basket.width / 2;
+        // 邊界限制
+        if(basket.x < 0) basket.x = 0;
+        if(basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+        e.preventDefault();
+    }, {passive: false});
+
+    function drawBasket() {
+        const bx = basket.x;
+        const by = basket.y;
+        const bw = basket.width;
+        const bh = basket.height;
+
+        // 畫果籃 (梯形)
+        ctx.fillStyle = "#d2691e"; // 籃子主色
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + bw, by);
+        ctx.lineTo(bx + bw - 20, by + bh);
+        ctx.lineTo(bx + 20, by + bh);
+        ctx.closePath();
+        ctx.fill();
+
+        // 籃子編織紋理
+        ctx.strokeStyle = "rgba(0,0,0,0.1)";
+        ctx.lineWidth = 2;
+        for(let i=10; i<bw-10; i+=15) {
+            ctx.beginPath();
+            ctx.moveTo(bx + i, by);
+            ctx.lineTo(bx + i + (i > bw/2 ? -10 : 10), by + bh);
+            ctx.stroke();
+        }
+
+        // HKTVmall 標誌區
+        ctx.fillStyle = "white";
+        ctx.fillRect(bx + 15, by + 15, bw - 30, 30);
+        
+        ctx.fillStyle = "#ed1b24"; // HKTVmall 紅色文字感
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("HKTVmall", bx + bw/2, by + 36);
+    }
+
+    function createCoin() {
+        if (Math.random() < 0.03) {
+            coins.push({
+                x: Math.random() * (canvas.width - 30) + 15,
+                y: -30,
+                r: 20,
+                speed: 3 + Math.random() * 4
+            });
+        }
+    }
+
+    function drawCoins() {
+        coins.forEach((coin, index) => {
+            coin.y += coin.speed;
+
+            // 金幣外圈
+            ctx.beginPath();
+            ctx.arc(coin.x, coin.y, coin.r, 0, Math.PI * 2);
+            ctx.fillStyle = "#FFD700";
+            ctx.fill();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "rgba(255, 215, 0, 0.5)";
+            ctx.strokeStyle = "#DAA520";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 金幣內圈
+            ctx.beginPath();
+            ctx.arc(coin.x, coin.y, coin.r - 5, 0, Math.PI * 2);
+            ctx.strokeStyle = "#B8860B";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // M 字
+            ctx.fillStyle = "#8B4513";
+            ctx.font = "bold 20px serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("M", coin.x, coin.y + 2);
+
+            // 碰撞偵測
+            if (coin.y + coin.r > basket.y && 
+                coin.x > basket.x && 
+                coin.x < basket.x + basket.width &&
+                coin.y < basket.y + basket.height) {
+                coins.splice(index, 1);
+                score += 100;
+                scoreElement.innerText = score;
+            }
+
+            // 移除出界金幣
+            if (coin.y > canvas.height + 50) {
+                coins.splice(index, 1);
+            }
+        });
+    }
+
+    function update() {
+        if (rightPressed && basket.x < canvas.width - basket.width) basket.x += basket.speed;
+        if (leftPressed && basket.x > 0) basket.x -= basket.speed;
+    }
+
+    function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 背景裝飾
+        ctx.fillStyle = "rgba(255,255,255,0.05)";
+        ctx.font = "200px bold Arial";
+        ctx.fillText("M", canvas.width/2, canvas.height/2 + 70);
+
+        update();
+        createCoin();
+        drawCoins();
+        drawBasket();
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+</script>
 </body>
 </html>
