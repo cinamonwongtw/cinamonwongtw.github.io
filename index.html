@@ -2,216 +2,516 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HKTVmall 接金幣挑戰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的虛擬萌寵 (My Kawaii Pet)</title>
     <style>
+        /* --- 1. 視覺風格 (Kawaii Style) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+
+        :root {
+            --bg-color: #FFF0F5; /* 薰衣草紅 */
+            --primary: #FFB7B2;   /* 淺粉 */
+            --secondary: #B5EAD7; /* 薄荷綠 */
+            --danger: #FF9AA2;    /* 警告紅 */
+            --text: #66545e;      /* 深灰紫 */
+            --card-bg: #ffffff;
+        }
+
         body {
+            font-family: 'Varela Round', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
             margin: 0;
-            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             overflow: hidden;
-            background-color: #222;
-            font-family: 'Arial', sans-serif;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 400px; /* 手機模擬寬度 */
+            height: 90vh;
+            max-height: 800px;
+            background: var(--card-bg);
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 8px solid white;
+        }
+
+        /* 通用 UI 元件 */
+        h1, h2, h3 { text-align: center; color: var(--text); }
+        
+        .btn {
+            background: var(--primary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.1s;
+            font-family: inherit;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            margin: 5px;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn-secondary { background: var(--secondary); color: #555; }
+        .btn-danger { background: var(--danger); }
+
+        /* --- 2. 創建畫面 (Creation Screen) --- */
+        #creation-screen {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            gap: 15px;
+        }
+
+        .form-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, input[type="range"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 15px;
+            border: 2px solid #eee;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        /* 預覽區 */
+        #preview-box {
+            text-align: center;
+            font-size: 80px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        /* --- 3. 遊戲畫面 (Game Screen) --- */
+        #game-screen {
+            display: none; /* 預設隱藏 */
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 狀態條 */
+        .stats-container {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-row { display: flex; align-items: center; margin-bottom: 8px; }
+        .stat-icon { width: 30px; font-size: 20px; }
+        .progress-bar-bg {
+            flex-grow: 1;
+            height: 15px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: var(--primary);
+            transition: width 0.5s ease, background 0.3s;
+        }
+        .fill-love { background: #FF9AA2; }
+        .fill-hunger { background: #FFDAC1; }
+
+        /* 寵物顯示區 */
+        .pet-stage {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: url('data:image/svg+xml;utf8,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="2" fill="%23f0f0f0"/></svg>'); 
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        #pet-display {
+            font-size: 120px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+        }
+        
+        /* 寵物動畫 */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+        }
+        .anim-bounce { animation: bounce 0.6s ease; }
+
+        @keyframes eat {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9) rotate(-10deg); }
+            100% { transform: scale(1); }
+        }
+        .anim-eat { animation: eat 0.4s ease; }
+
+        /* 互動選單 */
+        .actions-menu {
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            padding: 15px 0;
+            border-radius: 20px;
+        }
+        .action-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            font-family: inherit;
+        }
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border: 2px solid var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            height: 100vh;
+            font-size: 24px;
+            margin-bottom: 5px;
+            transition: 0.2s;
         }
-        #game-container {
-            position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            border: 4px solid #fff;
-            border-radius: 15px;
-            overflow: hidden;
-        }
-        canvas {
-            background: linear-gradient(to bottom, #76b82a 0%, #4d791c 100%);
-            display: block;
-        }
-        #ui {
+        .action-btn:active .action-icon { transform: scale(0.9); background: var(--secondary); }
+
+        /* 浮動表情符號 */
+        .floater {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 28px;
-            font-weight: 900;
-            text-shadow: 2px 2px 0px #ff6600;
+            font-size: 30px;
+            animation: floatUp 1s ease-out forwards;
             pointer-events: none;
+            z-index: 10;
         }
-        .instructions {
-            color: white;
-            margin-top: 15px;
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        /* 模態框 (取代 confirm) */
+        .modal-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(2px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 80%;
+            max-width: 280px;
+            border: 2px solid var(--primary);
         }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div id="ui">MALL DOLLAR: <span id="score">0</span></div>
-        <canvas id="gameCanvas"></canvas>
+<div id="app">
+    <!-- 創建畫面 -->
+    <div id="creation-screen">
+        <h2>Adopt a Pet 🐾</h2>
+        
+        <div id="preview-box">🐱</div>
+
+        <div class="form-group">
+            <label>Species (種類)</label>
+            <select id="species-select" onchange="updatePreview()">
+                <option value="🐱">Cat (貓)</option>
+                <option value="🐶">Dog (狗)</option>
+                <option value="🐰">Rabbit (兔)</option>
+                <option value="🐘">Elephant (大象)</option>
+                <option value="🦁">Lion (獅子)</option>
+                <option value="🐼">Panda (熊貓)</option>
+                <option value="🦄">Unicorn (獨角獸)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Name (名字)</label>
+            <input type="text" id="pet-name" placeholder="Enter name..." maxlength="10">
+        </div>
+
+        <div class="form-group">
+            <label>Eye Size (眼睛大小)</label>
+            <input type="range" id="eye-size" min="0.8" max="1.5" step="0.1" value="1" oninput="updatePreview()">
+        </div>
+
+        <div class="form-group">
+            <label>Personality (性格)</label>
+            <select id="personality">
+                <option value="Cheerful">Cheerful (開朗)</option>
+                <option value="Lazy">Lazy (慵懶)</option>
+                <option value="Greedy">Glutton (貪吃)</option>
+            </select>
+        </div>
+
+        <button class="btn" onclick="createPet()">Generate Pet ✨</button>
     </div>
 
-    <div class="instructions">
-        電腦：左右方向鍵 | 手機：左右滑動果籃
+    <!-- 遊戲畫面 -->
+    <div id="game-screen">
+        <div class="stats-container">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 id="display-name" style="margin:0;">Pet</h3>
+                <small id="display-personality" style="color:#888; background:#eee; padding:2px 8px; border-radius:10px;">Normal</small>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <div class="stat-row">
+                    <span class="stat-icon">🍗</span>
+                    <div class="progress-bar-bg">
+                        <div id="bar-hunger" class="progress-bar-fill fill-hunger" style="width: 100%;"></div>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-icon">❤️</span>
+                    <div class="progress-bar-bg">
+                        <div id="bar-love" class="progress-bar-fill fill-love" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pet-stage">
+            <div id="pet-display" onclick="interact('pet')">🐱</div>
+        </div>
+
+        <div class="actions-menu">
+            <button class="action-btn" onclick="interact('feed')">
+                <div class="action-icon" style="border-color: #FFDAC1;">🍖</div>
+                <span>Meal</span>
+            </button>
+            <button class="action-btn" onclick="interact('snack')">
+                <div class="action-icon" style="border-color: #FF9AA2;">🍩</div>
+                <span>Snack</span>
+            </button>
+            <button class="action-btn" onclick="interact('pet')">
+                <div class="action-icon" style="border-color: #B5EAD7;">👋</div>
+                <span>Pet</span>
+            </button>
+            <button class="action-btn" onclick="showResetModal()">
+                <div class="action-icon" style="border-color: #ccc;">🗑️</div>
+                <span>Reset</span>
+            </button>
+        </div>
     </div>
+
+    <!-- 自定義模態框 (取代 confirm) -->
+    <div id="reset-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Are you sure? 🥺</h3>
+            <p>This will say goodbye to your pet forever!</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeResetModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmReset()">Yes, Bye Bye</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const scoreElement = document.getElementById('score');
-
-    // 自動適應屏幕
-    canvas.width = Math.min(window.innerWidth - 40, 450);
-    canvas.height = Math.min(window.innerHeight - 150, 700);
-
-    let score = 0;
-    const basket = {
-        width: 120,
-        height: 70,
-        x: canvas.width / 2 - 60,
-        y: canvas.height - 100,
-        speed: 10
+    /* --- JavaScript 邏輯 --- */
+    
+    // 遊戲狀態物件 (In-Memory State)
+    let gameState = {
+        pet: null 
     };
 
-    const coins = [];
-    let rightPressed = false;
-    let leftPressed = false;
-
-    // 處理輸入
-    document.addEventListener("keydown", (e) => {
-        if(e.key === "ArrowRight") rightPressed = true;
-        if(e.key === "ArrowLeft") leftPressed = true;
-    });
-    document.addEventListener("keyup", (e) => {
-        if(e.key === "ArrowRight") rightPressed = false;
-        if(e.key === "ArrowLeft") leftPressed = false;
-    });
-    canvas.addEventListener("touchmove", (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const touchX = e.touches[0].clientX - rect.left;
-        basket.x = touchX - basket.width / 2;
-        // 邊界限制
-        if(basket.x < 0) basket.x = 0;
-        if(basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
-        e.preventDefault();
-    }, {passive: false});
-
-    function drawBasket() {
-        const bx = basket.x;
-        const by = basket.y;
-        const bw = basket.width;
-        const bh = basket.height;
-
-        // 畫果籃 (梯形)
-        ctx.fillStyle = "#d2691e"; // 籃子主色
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(bx + bw, by);
-        ctx.lineTo(bx + bw - 20, by + bh);
-        ctx.lineTo(bx + 20, by + bh);
-        ctx.closePath();
-        ctx.fill();
-
-        // 籃子編織紋理
-        ctx.strokeStyle = "rgba(0,0,0,0.1)";
-        ctx.lineWidth = 2;
-        for(let i=10; i<bw-10; i+=15) {
-            ctx.beginPath();
-            ctx.moveTo(bx + i, by);
-            ctx.lineTo(bx + i + (i > bw/2 ? -10 : 10), by + bh);
-            ctx.stroke();
+    // 1. 初始化檢查
+    window.onload = function() {
+        // 為了演示穩定性，我們在這個版本中使用記憶體狀態
+        // 如果需要長期保存，通常會連接後端資料庫
+        if (gameState.pet) {
+            startGame();
+        } else {
+            document.getElementById("creation-screen").style.display = "flex";
+            document.getElementById("game-screen").style.display = "none";
+            updatePreview();
         }
+    };
 
-        // HKTVmall 標誌區
-        ctx.fillStyle = "white";
-        ctx.fillRect(bx + 15, by + 15, bw - 30, 30);
+    // 2. 創建與預覽
+    function updatePreview() {
+        const species = document.getElementById("species-select").value;
+        const size = document.getElementById("eye-size").value;
+        const preview = document.getElementById("preview-box");
         
-        ctx.fillStyle = "#ed1b24"; // HKTVmall 紅色文字感
-        ctx.font = "bold 16px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("HKTVmall", bx + bw/2, by + 36);
+        preview.textContent = species;
+        preview.style.transform = `scale(${size})`;
     }
 
-    function createCoin() {
-        if (Math.random() < 0.03) {
-            coins.push({
-                x: Math.random() * (canvas.width - 30) + 15,
-                y: -30,
-                r: 20,
-                speed: 3 + Math.random() * 4
-            });
+    function createPet() {
+        const nameInput = document.getElementById("pet-name").value;
+        const name = nameInput.trim() || "Baby";
+        const species = document.getElementById("species-select").value;
+        const eyeSize = document.getElementById("eye-size").value;
+        const personality = document.getElementById("personality").value;
+
+        gameState.pet = {
+            name: name,
+            species: species,
+            eyeSize: eyeSize,
+            personality: personality,
+            hunger: 100, // 0-100
+            love: 100,   // 0-100
+        };
+
+        startGame();
+    }
+
+    // 3. 開始遊戲與渲染
+    let gameInterval;
+
+    function startGame() {
+        document.getElementById("creation-screen").style.display = "none";
+        document.getElementById("game-screen").style.display = "flex";
+        
+        // 設定外觀
+        const petDisplay = document.getElementById("pet-display");
+        petDisplay.textContent = gameState.pet.species;
+        petDisplay.style.transform = `scale(${gameState.pet.eyeSize})`;
+
+        document.getElementById("display-name").textContent = gameState.pet.name;
+        document.getElementById("display-personality").textContent = gameState.pet.personality;
+
+        updateUI();
+        
+        // 清除舊的計時器並啟動新的
+        if(gameInterval) clearInterval(gameInterval);
+        gameInterval = setInterval(gameLoop, 3000);
+    }
+
+    function updateUI() {
+        if(!gameState.pet) return;
+
+        document.getElementById("bar-hunger").style.width = gameState.pet.hunger + "%";
+        document.getElementById("bar-love").style.width = gameState.pet.love + "%";
+
+        // 改變表情：如果狀態不好，可能會變色
+        const petDisplay = document.getElementById("pet-display");
+        if (gameState.pet.hunger < 30 || gameState.pet.love < 30) {
+            petDisplay.style.filter = "grayscale(0.8) drop-shadow(0 5px 10px rgba(0,0,0,0.1))";
+        } else {
+            petDisplay.style.filter = "drop-shadow(0 5px 10px rgba(0,0,0,0.1))";
         }
     }
 
-    function drawCoins() {
-        coins.forEach((coin, index) => {
-            coin.y += coin.speed;
-
-            // 金幣外圈
-            ctx.beginPath();
-            ctx.arc(coin.x, coin.y, coin.r, 0, Math.PI * 2);
-            ctx.fillStyle = "#FFD700";
-            ctx.fill();
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "rgba(255, 215, 0, 0.5)";
-            ctx.strokeStyle = "#DAA520";
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // 金幣內圈
-            ctx.beginPath();
-            ctx.arc(coin.x, coin.y, coin.r - 5, 0, Math.PI * 2);
-            ctx.strokeStyle = "#B8860B";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // M 字
-            ctx.fillStyle = "#8B4513";
-            ctx.font = "bold 20px serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText("M", coin.x, coin.y + 2);
-
-            // 碰撞偵測
-            if (coin.y + coin.r > basket.y && 
-                coin.x > basket.x && 
-                coin.x < basket.x + basket.width &&
-                coin.y < basket.y + basket.height) {
-                coins.splice(index, 1);
-                score += 100;
-                scoreElement.innerText = score;
-            }
-
-            // 移除出界金幣
-            if (coin.y > canvas.height + 50) {
-                coins.splice(index, 1);
-            }
-        });
-    }
-
-    function update() {
-        if (rightPressed && basket.x < canvas.width - basket.width) basket.x += basket.speed;
-        if (leftPressed && basket.x > 0) basket.x -= basket.speed;
-    }
-
+    // 4. 遊戲循環
     function gameLoop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 背景裝飾
-        ctx.fillStyle = "rgba(255,255,255,0.05)";
-        ctx.font = "200px bold Arial";
-        ctx.fillText("M", canvas.width/2, canvas.height/2 + 70);
+        if(!gameState.pet) return;
 
-        update();
-        createCoin();
-        drawCoins();
-        drawBasket();
-        requestAnimationFrame(gameLoop);
+        // 自然隨時間下降
+        gameState.pet.hunger = Math.max(0, gameState.pet.hunger - 1);
+        gameState.pet.love = Math.max(0, gameState.pet.love - 1);
+        
+        updateUI();
     }
 
-    gameLoop();
+    // 5. 互動功能
+    function interact(type) {
+        if(!gameState.pet) return;
+
+        const petEl = document.getElementById("pet-display");
+        
+        if (type === 'feed') {
+            gameState.pet.hunger = Math.min(100, gameState.pet.hunger + 15);
+            showFloatEmoji("🍗");
+            petEl.classList.add("anim-eat");
+        } 
+        else if (type === 'snack') {
+            // 零食增加很多愛，但只加一點點飽食度
+            gameState.pet.hunger = Math.min(100, gameState.pet.hunger + 5);
+            gameState.pet.love = Math.min(100, gameState.pet.love + 10);
+            showFloatEmoji("💕");
+            petEl.classList.add("anim-eat");
+        } 
+        else if (type === 'pet') {
+            gameState.pet.love = Math.min(100, gameState.pet.love + 5);
+            showFloatEmoji("❤️");
+            petEl.classList.add("anim-bounce");
+        }
+
+        updateUI();
+
+        // 移除動畫 class 以便下次觸發
+        setTimeout(() => {
+            petEl.classList.remove("anim-eat", "anim-bounce");
+        }, 600);
+    }
+
+    function showFloatEmoji(emoji) {
+        const stage = document.querySelector('.pet-stage');
+        const el = document.createElement('div');
+        el.textContent = emoji;
+        el.className = 'floater';
+        // 隨機位置
+        el.style.left = (50 + (Math.random() * 40 - 20)) + '%';
+        el.style.top = '40%';
+        stage.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    // 6. 重置功能 (Modal 邏輯)
+    function showResetModal() {
+        document.getElementById("reset-modal").style.display = "flex";
+    }
+
+    function closeResetModal() {
+        document.getElementById("reset-modal").style.display = "none";
+    }
+
+    function confirmReset() {
+        gameState.pet = null;
+        if(gameInterval) clearInterval(gameInterval);
+        
+        closeResetModal();
+        
+        // 重置 UI
+        document.getElementById("pet-name").value = "";
+        document.getElementById("creation-screen").style.display = "flex";
+        document.getElementById("game-screen").style.display = "none";
+        
+        // 觸發一次預覽更新以重置視覺
+        updatePreview();
+    }
 </script>
+
 </body>
 </html>
